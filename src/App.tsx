@@ -9,6 +9,9 @@ type Todo = {
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   useEffect(() => {
     const storedTodos = localStorage.getItem("todos");
@@ -51,6 +54,21 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id));
   };
 
+  const filteredTodos = todos.filter((todo) => {
+    if (filter === "active") return !todo.completed;
+    if (filter === "completed") return todo.completed;
+    return true;
+  });
+
+  const saveEditedTodo = (id: number) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, text: editingText } : todo
+      )
+    );
+    setEditingId(null);
+  };
+
   return (
     <div style={{ padding: "1rem", maxWidth: "500px", margin: "0 auto" }}>
       <h1>To-Do List</h1>
@@ -64,8 +82,16 @@ function App() {
         <button onClick={addTodo}>Add</button>
       </div>
 
+      {todos.length > 0 && (
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+          <button onClick={() => setFilter("all")}>All</button>
+          <button onClick={() => setFilter("active")}>Active</button>
+          <button onClick={() => setFilter("completed")}>Completed</button>
+        </div>
+      )}
+
       <ul style={{ marginTop: "1rem", listStyle: "none", padding: 0 }}>
-        {todos.map((todo) => (
+        {filteredTodos.map((todo) => (
           <li
             key={todo.id}
             style={{
@@ -75,19 +101,42 @@ function App() {
               padding: "0.3rem 0",
             }}
           >
-            <span
-              onClick={() => toggleTodo(todo.id)}
-              style={{
-                cursor: "pointer",
-                textDecoration: todo.completed ? "line-through" : "none",
-                flex: 1,
+            {editingId === todo.id ? (
+              <input
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                onBlur={() => saveEditedTodo(todo.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEditedTodo(todo.id);
+                }}
+                autoFocus
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <span
+                onClick={() => toggleTodo(todo.id)}
+                style={{
+                  cursor: "pointer",
+                  textDecoration: todo.completed ? "line-through" : "none",
+                  flex: 1,
+                }}
+              >
+                {todo.text}
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setEditingId(todo.id);
+                setEditingText(todo.text);
               }}
+              style={{ marginLeft: "0.5rem" }}
             >
-              {todo.text}
-            </span>
+              Edit
+            </button>
+
             <button
               onClick={() => deleteTodo(todo.id)}
-              style={{ marginLeft: "1rem" }}
+              style={{ marginLeft: "0.5rem" }}
             >
               Delete
             </button>
